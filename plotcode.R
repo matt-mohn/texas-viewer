@@ -80,7 +80,7 @@ versatile_plot_builder <- function(year_1,
   verbatim_gop_name_1 <- ""
   verbatim_dem_name_2 <- ""
   verbatim_gop_name_2 <- ""
-  
+
   if (office_2 != "NA") {
     two_track <- T
   }
@@ -98,23 +98,21 @@ versatile_plot_builder <- function(year_1,
   if (dem_name_1 == "999") {
     quit <- T
   }
-  
 
-  if(quit == F)
-  {
+
+  if (quit == F) {
     verbatim_dem_name_1 <- candidate_names_D$name[dem_name_1]
   }
-  
 
-  
+
+
 
   gop_name_1 <- match(lookup_code_1, candidate_names_R$tag, nomatch = "999")
   if (gop_name_1 == "999") {
     quit <- T
   }
-  
-  if(quit == F)
-  {
+
+  if (quit == F) {
     verbatim_gop_name_1 <- candidate_names_R$name[gop_name_1]
   }
 
@@ -158,20 +156,22 @@ versatile_plot_builder <- function(year_1,
     if (dem_name_2 == "999") {
       quit <- T
     }
-    
-    if(quit == F)
-    {verbatim_dem_name_2 <- candidate_names_D$name[dem_name_2]}
-      
-    
-    
+
+    if (quit == F) {
+      verbatim_dem_name_2 <- candidate_names_D$name[dem_name_2]
+    }
+
+
+
     gop_name_2 <- match(lookup_code_2, candidate_names_R$tag, nomatch = "999")
     if (gop_name_2 == "999") {
       quit <- T
     }
-    
-    if(quit == F)
-    {verbatim_gop_name_2 <- candidate_names_R$name[gop_name_2]}
-    
+
+    if (quit == F) {
+      verbatim_gop_name_2 <- candidate_names_R$name[gop_name_2]
+    }
+
 
     if (quit == F) {
       electoral_data_2 <- read.csv(paste(year_2, "_election_results.csv", sep = "")) |>
@@ -308,7 +308,6 @@ versatile_plot_builder <- function(year_1,
     }
   }
 
-
   if (quit == F) {
     # First Panel - Add Base Shapefile, if Precinct, Use Special Colour
     if (geomtype == "NA") {
@@ -346,7 +345,6 @@ versatile_plot_builder <- function(year_1,
           linewidth = 0.25
         )
     }
-    
 
     outputplot <- outputplot +
       scale_fill_manual(
@@ -354,7 +352,7 @@ versatile_plot_builder <- function(year_1,
         breaks = margin_levels,
         values = margin_levels_color,
         drop = F
-      )+
+      ) +
       annotate(
         geom = "text",
         label = strings[1],
@@ -376,15 +374,21 @@ versatile_plot_builder <- function(year_1,
       ) +
       annotate(
         geom = "text",
-        label = if_else(strings[3]=="NA",
-                        if_else(two_track==T,
-                                default_annotation(dem_name_one = verbatim_dem_name_1,
-                                                   gop_name_one =  verbatim_gop_name_1,
-                                                   dem_name_two =  verbatim_dem_name_2,
-                                                   gop_name_two =  verbatim_gop_name_2),
-                                default_annotation(dem_name_one = verbatim_dem_name_1,
-                                                   gop_name_one =  verbatim_gop_name_1)),
-                        strings[3]),
+        label = if_else(strings[3] == "NA",
+          if_else(two_track == T,
+            default_annotation(
+              dem_name_one = verbatim_dem_name_1,
+              gop_name_one = verbatim_gop_name_1,
+              dem_name_two = verbatim_dem_name_2,
+              gop_name_two = verbatim_gop_name_2
+            ),
+            default_annotation(
+              dem_name_one = verbatim_dem_name_1,
+              gop_name_one = verbatim_gop_name_1
+            )
+          ),
+          strings[3]
+        ),
         x = x_bound(0.1),
         y = y_bound(0.87),
         vjust = 0.5,
@@ -444,7 +448,6 @@ versatile_plot_builder <- function(year_1,
     n <- data.frame(cbind(c(0, 1000), c(0, 1000)))
     colnames(n) <- c("a", "b")
     outputplot <- ggplot("Race cannot be plotted.\nOne of the offices selected was either not up for election that year, or\nit was uncontested by Democrats and/or Republicans.\nMost 2004 data is unavailable.")
-
   }
 
   output_storage <- list(
@@ -456,7 +459,7 @@ versatile_plot_builder <- function(year_1,
 }
 
 # Generate demography plots
-demography_plots <- function(datum, geomtype, calls) {
+demography_plots <- function(datum, geomtype, calls, compress_swing) {
   instant_failure_condition <- F
   if (nrow(datum) == 2) {
     instant_failure_condition <- T
@@ -517,6 +520,18 @@ demography_plots <- function(datum, geomtype, calls) {
 
     instant_quit_flag <- F
 
+    if (compress_swing == T) {
+      datum <- datum |>
+        filter(is.na("Dem_Share") == F) |>
+        filter(is.na("Dem_Share_2") == F) |>
+        mutate(Dem_Share = Dem_Share - Dem_Share_2) |>
+        select(-Dem_Share_2)
+
+      if (calls[1] == "NA") {
+        calls[1] <- "Change in Democratic two-party margin between races"
+      }
+    }
+
     if ("Dem_Share_2" %in% colnames(datum) == T) {
       instant_quit_flag <- T
       datum <- datum |>
@@ -544,6 +559,7 @@ demography_plots <- function(datum, geomtype, calls) {
         data = datum,
         mapping = aes(x = Race_Share, y = Share, color = Race)
       ) +
+        geom_hline(yintercept = 0, linewidth = 0.35, color = if_else(compress_swing == T, "black", NA)) +
         geom_point(alpha = alpha_handler(count)) +
         geom_smooth() +
         facet_wrap("Ethnicity", nrow = 3, scales = "free_x") +
@@ -556,7 +572,7 @@ demography_plots <- function(datum, geomtype, calls) {
           title = calls[3],
           caption = "TexasElectionViewer"
         )
-      
+
       demography_plot <- plot_wrapper(demography_plot)
     }
 
@@ -572,10 +588,18 @@ demography_plots <- function(datum, geomtype, calls) {
 
       datum <- datum |> transform_mapping_plot_1()
 
+      range <- quantile(datum$Dem_Share, .98)[[1]] - quantile(datum$Dem_Share, .02)[[1]]
+      if (range < 0.5) {
+        datum <- datum |>
+          filter(Dem_Share > quantile(datum$Dem_Share, .02)[[1]]) |>
+          filter(Dem_Share < quantile(datum$Dem_Share, .98)[[1]])
+      }
+
       demography_plot <- ggplot(
         data = datum,
         mapping = aes(x = Race_Share, y = Dem_Share)
       ) +
+        geom_hline(yintercept = 0, linewidth = 0.35, color = if_else(compress_swing == T, "black", NA)) +
         geom_point(alpha = alpha_handler(count)) +
         geom_smooth() +
         facet_wrap("Ethnicity", nrow = 3, scales = "free_x") +
@@ -588,7 +612,7 @@ demography_plots <- function(datum, geomtype, calls) {
           title = calls[3],
           caption = "TexasElectionViewer"
         )
-      
+
       demography_plot <- plot_wrapper(demography_plot)
     }
   }
@@ -596,12 +620,11 @@ demography_plots <- function(datum, geomtype, calls) {
   if (instant_failure_condition == T) {
     demography_plot <- empty_plot("Missing info.")
   }
-
   return(demography_plot)
 }
 
 # Generate demography plots
-extra_plots <- function(datum, geomtype, calls) {
+extra_plots <- function(datum, geomtype, calls, compress_swing, force_percentile) {
   instant_failure_condition <- F
   if (nrow(datum) == 2) {
     instant_failure_condition <- T
@@ -652,7 +675,6 @@ extra_plots <- function(datum, geomtype, calls) {
             adv_degree = adv_degree / pop_above_25
           )
 
-
         extra_data_local <- extra_data_local |>
           distinct(DIST, .keep_all = T) |>
           na.omit()
@@ -666,6 +688,18 @@ extra_plots <- function(datum, geomtype, calls) {
 
     instant_quit_flag <- F
 
+    if (compress_swing == T) {
+      datum <- datum |>
+        filter(is.na("Dem_Share") == F) |>
+        filter(is.na("Dem_Share_2") == F) |>
+        mutate(Dem_Share = Dem_Share - Dem_Share_2) |>
+        select(-Dem_Share_2)
+
+      if (calls[1] == "NA") {
+        calls[1] <- "Change in Democratic two-party margin between races"
+      }
+    }
+
     if ("Dem_Share_2" %in% colnames(datum) == T) {
       instant_quit_flag <- T
       datum <- datum |>
@@ -676,12 +710,17 @@ extra_plots <- function(datum, geomtype, calls) {
 
       count <- nrow(datum)
 
-
       datum <- datum |>
         filter(is.na(density) == F)
 
-      datum <- datum |>
-        mutate(density = percent_rank(density))
+      if (force_percentile == T) {
+        datum$density <- weighted_percentile(datum$density, 
+                                             datum$pop_above_25)
+        datum$median_income <- weighted_percentile(datum$median_income, 
+                                                   datum$pop_above_25)
+        datum$adv_degree <- weighted_percentile(datum$adv_degree, 
+                                                datum$pop_above_25)
+      }
 
       datum <- datum |>
         pivot_longer(
@@ -700,10 +739,16 @@ extra_plots <- function(datum, geomtype, calls) {
 
       datum <- transform_mapping_plot_4(datum, calls[4], calls[5])
 
+      if (force_percentile == T) {
+        datum$Class <- paste(datum$Class, " - Population-weighted percentile", sep = "")
+      }
+
       census_plot <- ggplot(
         data = datum,
         mapping = aes(x = Value, y = Share, color = Race)
       ) +
+        geom_hline(yintercept = 0, linewidth = 0.35, 
+                   color = if_else(compress_swing == T, "black", NA)) +
         geom_point(alpha = alpha_handler(count)) +
         geom_smooth() +
         facet_wrap("Class", nrow = 3, scales = "free_x") +
@@ -716,18 +761,21 @@ extra_plots <- function(datum, geomtype, calls) {
           title = calls[3],
           caption = "TexasElectionViewer"
         )
-      
+
       census_plot <- plot_wrapper(census_plot)
-      
     }
 
-
-
     if ("Dem_Share_2" %in% colnames(datum) == F & instant_quit_flag == F) {
-      datum <- datum |>
-        mutate(density = percent_rank(density))
-
       count <- nrow(datum)
+
+      if (force_percentile == T) {
+        datum$density <- weighted_percentile(datum$density, 
+                                             datum$pop_above_25)
+        datum$median_income <- weighted_percentile(datum$median_income, 
+                                                   datum$pop_above_25)
+        datum$adv_degree <- weighted_percentile(datum$adv_degree, 
+                                                datum$pop_above_25)
+      }
 
       datum <- datum |>
         pivot_longer(
@@ -741,10 +789,23 @@ extra_plots <- function(datum, geomtype, calls) {
 
       datum <- datum |> transform_mapping_plot_3()
 
+      range <- quantile(datum$Dem_Share, .98)[[1]] - quantile(datum$Dem_Share, .02)[[1]]
+      if (range < 0.5) {
+        datum <- datum |>
+          filter(Dem_Share > quantile(datum$Dem_Share, .02)[[1]]) |>
+          filter(Dem_Share < quantile(datum$Dem_Share, .98)[[1]])
+      }
+
+      if (force_percentile == T) {
+        datum$Class <- paste(datum$Class, " - Population-weighted percentile", sep = "")
+      }
+
       census_plot <- ggplot(
         data = datum,
         mapping = aes(x = Value, y = Dem_Share)
       ) +
+        geom_hline(yintercept = 0, linewidth = 0.35, 
+                   color = if_else(compress_swing == T, "black", NA)) +
         geom_point(alpha = alpha_handler(count)) +
         geom_smooth() +
         facet_wrap("Class", nrow = 3, scales = "free_x") +
@@ -757,36 +818,30 @@ extra_plots <- function(datum, geomtype, calls) {
           title = calls[3],
           caption = "TexasElectionViewer"
         )
-      
+
       census_plot <- plot_wrapper(census_plot)
     }
   }
   if (instant_failure_condition == T) {
     census_plot <- empty_plot("Missing info.")
   }
-
   return(census_plot)
 }
-
-
-
-
-
-
-
-
-
-
 
 transform_mapping_plot_2 <- function(datum, election1, election2) {
   # Change race share
   # Change race values
   datum <- datum |>
-    mutate(Ethnicity = if_else(Ethnicity == "anglo_pct", "White", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "asian_pct", "Asian American / Pacific Islander", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "black_pct", "African American", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "hispanic_pct", "Hispanic", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "non_anglo_pct", "Non-White", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "anglo_pct",
+                               "White", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "asian_pct",
+                               "Asian American / Pacific Islander", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "black_pct",
+                               "African American", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "hispanic_pct",
+                               "Hispanic", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "non_anglo_pct",
+                               "Non-White", Ethnicity)) |>
     mutate(Race = if_else(Race == "race_1", election1, Race)) |>
     mutate(Race = if_else(Race == "race_2", election2, Race))
 
@@ -797,11 +852,16 @@ transform_mapping_plot_1 <- function(datum) {
   # Change race share
   # Change race values
   datum <- datum |>
-    mutate(Ethnicity = if_else(Ethnicity == "anglo_pct", "White", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "asian_pct", "Asian American / Pacific Islander", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "black_pct", "African American", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "hispanic_pct", "Hispanic", Ethnicity)) |>
-    mutate(Ethnicity = if_else(Ethnicity == "non_anglo_pct", "Non-White", Ethnicity))
+    mutate(Ethnicity = if_else(Ethnicity == "anglo_pct",
+                               "White", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "asian_pct",
+                               "Asian American / Pacific Islander", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "black_pct",
+                               "African American", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "hispanic_pct",
+                               "Hispanic", Ethnicity)) |>
+    mutate(Ethnicity = if_else(Ethnicity == "non_anglo_pct",
+                               "Non-White", Ethnicity))
 
   return(datum)
 }
@@ -810,9 +870,12 @@ transform_mapping_plot_3 <- function(datum) {
   # Change race share
   # Change race values
   datum <- datum |>
-    mutate(Class = if_else(Class == "adv_degree", "Pop. over 25 with bachelor's degree or higher", Class)) |>
-    mutate(Class = if_else(Class == "median_income", "Median household income ($)", Class)) |>
-    mutate(Class = if_else(Class == "density", "Density percentile", Class))
+    mutate(Class = if_else(Class == "adv_degree",
+                           "Pop. over 25 with bachelor's degree or higher", Class)) |>
+    mutate(Class = if_else(Class == "median_income",
+                           "Median household income ($)", Class)) |>
+    mutate(Class = if_else(Class == "density",
+                           "Density", Class))
 
   return(datum)
 }
@@ -821,9 +884,12 @@ transform_mapping_plot_4 <- function(datum, election1, election2) {
   # Change race share
   # Change race values
   datum <- datum |>
-    mutate(Class = if_else(Class == "adv_degree", "Pop. over 25 with bachelor's degree or higher", Class)) |>
-    mutate(Class = if_else(Class == "median_income", "Median household income ($)", Class)) |>
-    mutate(Class = if_else(Class == "density", "Density percentile", Class)) |>
+    mutate(Class = if_else(Class == "adv_degree",
+                           "Pop. over 25 with bachelor's degree or higher", Class)) |>
+    mutate(Class = if_else(Class == "median_income",
+                           "Median household income ($)", Class)) |>
+    mutate(Class = if_else(Class == "density",
+                           "Density", Class)) |>
     mutate(Race = if_else(Race == "race_1", election1, Race)) |>
     mutate(Race = if_else(Race == "race_2", election2, Race))
 
@@ -946,6 +1012,8 @@ margin_handler_swing <- function(value_vector) {
     if (is.na(m)) {
       m <- -2.5
     }
+
+    m <- m * 2
 
     if (m > -2.4) {
       m <- m
@@ -1224,8 +1292,7 @@ overlay_handler <- function(outputplot, geomtype_overlay, geomtype) {
   return(outputplot)
 }
 
-empty_plot <- function(label_plot)
-{
+empty_plot <- function(label_plot) {
   n <- data.frame(cbind(c(0, 1000), c(0, 1000)))
   colnames(n) <- c("a", "b")
   ggplot() +
@@ -1242,9 +1309,8 @@ empty_plot <- function(label_plot)
     theme_void()
 }
 
-plot_wrapper <- function(plot){
+plot_wrapper <- function(plot) {
   plot <- plot +
-  theme(plot.title = element_text(face = "bold"))+
     theme_minimal() +
     theme(
       panel.background = element_rect(
@@ -1257,7 +1323,8 @@ plot_wrapper <- function(plot){
         element_rect(
           fill = "#E5E5E5",
           color = "#E5E5E5"
-        )
+        ),
+      plot.title = element_text(face = "bold")
     )
   return(plot)
 }
@@ -1265,19 +1332,39 @@ plot_wrapper <- function(plot){
 default_annotation <- function(dem_name_one = "NA",
                                gop_name_one = "NA",
                                dem_name_two = "NA",
-                               gop_name_two = "NA")
-{
-  
-  #One-way
-  if(dem_name_two=="NA")
-  {
-    annotation <- paste(dem_name_one," (D) v. ",gop_name_one," (R)",sep="")
+                               gop_name_two = "NA") {
+  # One-way
+  if (dem_name_two == "NA") {
+    annotation <- paste(dem_name_one, " (D) v. ",
+                        gop_name_one, " (R)", sep = "")
   }
-  #Two-way
-  if(dem_name_two!="NA")
-  {
-    annotation <- paste(dem_name_one," (D) v. ",gop_name_one," (R)","\n","-v.-","\n",
-                        dem_name_two," (D) v. ",gop_name_two," (R)",sep="")
+  # Two-way
+  if (dem_name_two != "NA") {
+    annotation <- paste(dem_name_two, " (D) v. ",
+                        gop_name_two, " (R)", "\n", "to →", "\n",
+                        dem_name_one, " (D) v. ", gop_name_one, " (R)",
+                        sep = ""
+    )
   }
   return(annotation)
+}
+
+weighted_percentile <- function(target_vector, weight_vector) {
+  return_vector <- target_vector
+  tot_wt <- sum(weight_vector)
+
+  for (i in 1:length(target_vector))
+  {
+    balance <- 0
+    for (j in 1:length(target_vector))
+    {
+      if (target_vector[j] <= target_vector[i]) {
+        balance <- balance + weight_vector[j]
+      }
+    }
+    return_vector[i] <- balance
+  }
+
+  return_vector <- return_vector / tot_wt
+  return(return_vector)
 }

@@ -32,6 +32,9 @@ function(input, output, session) {
 
       calculation_choice <- input$calculation_method
       graphics_choice <- input$graphic_method
+      
+      compress_swing <- F
+      compress_swing <- input$swing_alternate
 
 
       use_county <- F
@@ -114,6 +117,9 @@ function(input, output, session) {
       plot_title <- input$chart_title
       plot_subtitle <- input$chart_subtitle
       plot_yaxis <- input$chart_yaxis
+      
+      force_percentile <- F
+      force_percentile <- input$use_percentiles
 
       if (plot_yaxis == "") {
         plot_yaxis <- "NA"
@@ -128,8 +134,8 @@ function(input, output, session) {
       }
 
       plot_labels <- c(plot_yaxis, plot_subtitle, plot_title)
-      demographic_plot <- demography_plots(map_data, geom_type, plot_labels)
-      census_plot <- extra_plots(map_data, geom_type, plot_labels)
+      demographic_plot <- demography_plots(map_data, geom_type, plot_labels, compress_swing)
+      census_plot <- extra_plots(map_data, geom_type, plot_labels, compress_swing, force_percentile)
 
       # Render All
 
@@ -152,6 +158,12 @@ function(input, output, session) {
 
       calculation_choice <- input$calculation_method
       graphics_choice <- input$graphic_method
+      
+      compress_swing <- F
+      compress_swing <- input$swing_alternate
+      
+      force_percentile <- F
+      force_percentile <- input$use_percentiles
 
 
       use_county <- F
@@ -249,8 +261,8 @@ function(input, output, session) {
       plot_election2 <- binder(year_two, office_two)
 
       plot_labels <- c(plot_yaxis, plot_subtitle, plot_title, plot_election1, plot_election2)
-      demographic_plot <- demography_plots(map_data, geom_type, plot_labels)
-      census_plot <- extra_plots(map_data, geom_type, plot_labels)
+      demographic_plot <- demography_plots(map_data, geom_type, plot_labels, compress_swing)
+      census_plot <- extra_plots(map_data, geom_type, plot_labels, compress_swing, force_percentile)
 
       # All Render
 
