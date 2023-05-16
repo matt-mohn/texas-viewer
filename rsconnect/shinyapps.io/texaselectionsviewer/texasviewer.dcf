@@ -1,0 +1,11 @@
+name: texasviewer
+title:
+username:
+account: texaselectionsviewer
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 9106428
+bundleId: 7217231
+url: https://texaselectionsviewer.shinyapps.io/texasviewer/
+when: 1684100140.24862
+lastSyncTime: 1684100140.24864
